@@ -607,7 +607,7 @@ class Trainer(object):
         logging_outputs: List[Dict[str, Any]],
         *extra_stats_to_sum
     ):
-        if self.get_criterion().__class__.logging_outputs_can_be_summed():
+        if self.task.__class__.logging_outputs_can_be_summed(self.get_criterion()):
             return self._fast_stat_sync_sum(logging_outputs, *extra_stats_to_sum)
         else:
             return self._all_gather_list_sync(logging_outputs, *extra_stats_to_sum)
