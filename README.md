@@ -15,14 +15,14 @@ This code pertains to the ICLR 2020 paper: [Generalization through Memorization:
 
 ## Wikitext-103 Experiments
 
-Before starting, make sure you install fairseq (after pulling the code, from the project directory) and [faiss](https://github.com/facebookresearch/faiss/wiki):
+Before starting, make sure you install Fairseq (after pulling the code, from the project directory) and [FAISS](https://github.com/facebookresearch/faiss/wiki):
 ```bash
 pip install --editable .
 
 pip install faiss
 ```
 
-### A note about Hardware
+### A Note about Hardware
 
 Experiments for this paper were conducted on machines that contain 500GB of RAM, NVIDIA V100 32GB GPUs and flash storage (SSDs). Saving the Wikitext-103 datastore requires 400GB of disk space. The speed of saving the datastore, building the FAISS index and evaluating the nearest neighbors language model heavily depends on the amount of RAM available for each job. Some of these steps can be sped up by parallelizing, which we leave for users to do in order to best cater to their setup.
 
@@ -81,7 +81,7 @@ python eval_lm.py data-bin/wikitext-103 \
 
 In order to save keys and values for the datastore, we must run model evaluation over the entire training set. 
 
-**Caution**: Running this step requires a large amount of disk space (400GB!). Please read the note about Hardware above, before running this! 
+**Caution**: Running this step requires a large amount of disk space (400GB!). Please read the note about hardware above, before running this! 
 
 ```bash
 python eval_lm.py data-bin/wikitext-103 \
