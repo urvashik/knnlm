@@ -13,11 +13,13 @@ import math
 import os
 
 import torch
+import numpy as np
 
 from fairseq import checkpoint_utils, options, progress_bar, tasks, utils
 from fairseq.data import LMContextWindowDataset
 from fairseq.meters import StopwatchMeter, TimeMeter
 from fairseq.sequence_scorer import SequenceScorer
+from fairseq.knnlm import KNN_Dstore
 
 
 logging.basicConfig(
@@ -122,7 +124,7 @@ def main(parsed_args):
     ).next_epoch_itr(shuffle=False)
 
     gen_timer = StopwatchMeter()
-    scorer = SequenceScorer(task.target_dictionary, args.softmax_batch)
+    scorer = SequenceScorer(task.target_dictionary, args.softmax_batch, args=args)
 
     score_sum = 0.
     count = 0
@@ -144,21 +146,63 @@ def main(parsed_args):
 
     word_stats = dict()
 
+    if args.knnlm and args.save_knnlm_dstore:
+        raise ValueError("Cannot use knnlm while trying to build the datastore!")
+
+    if args.knnlm:
+        knn_dstore = KNN_Dstore(args)
+
     with progress_bar.build_progress_bar(args, itr) as t:
         wps_meter = TimeMeter()
 
-        for sample in t:
+        if args.save_knnlm_dstore:
+            print('keytype being saved:', args.knn_keytype)
+#            if args.dstore_fp16:
+#                print('Saving fp16')
+#                dstore_keys = np.memmap(args.dstore_mmap+'_keys.npy', dtype=np.float16, mode='w+', shape=(args.dstore_size, args.decoder_embed_dim))
+#                dstore_vals = np.memmap(args.dstore_mmap+'_vals.npy', dtype=np.int16, mode='w+', shape=(args.dstore_size, 1))
+#            else:
+#                print('Saving fp32')
+#                dstore_keys = np.memmap(args.dstore_mmap+'_keys.npy', dtype=np.float32, mode='w+', shape=(args.dstore_size, args.decoder_embed_dim))
+#                dstore_vals = np.memmap(args.dstore_mmap+'_vals.npy', dtype=np.int, mode='w+', shape=(args.dstore_size, 1))
+
+        dstore_idx = 0
+        for ex_i, sample in enumerate(t):
             if 'net_input' not in sample:
                 continue
 
             sample = utils.move_to_cuda(sample) if use_cuda else sample
 
             gen_timer.start()
-            hypos = scorer.generate(models, sample)
+            if args.knnlm:
+                hypos = scorer.generate(models, sample, knn_dstore=knn_dstore)
+            else:
+                hypos = scorer.generate(models, sample)
             gen_timer.stop(sample['ntokens'])
 
             for i, hypos_i in enumerate(hypos):
                 hypo = hypos_i[0]
+                if args.save_knnlm_dstore:
+                    shape = hypo['dstore_keys'].shape
+                    if shape[0] == args.tokens_per_sample:
+                        if dstore_idx + shape[0] > args.dstore_size:
+                            shape = [args.dstore_size - dstore_idx]
+                            hypo['dstore_keys'] = hypo['dstore_keys'][:shape[0]]
+#                        if args.dstore_fp16:
+#                            dstore_keys[dstore_idx:shape[0]+dstore_idx] = hypo['dstore_keys'].view(
+#                                -1, args.decoder_embed_dim).cpu().numpy().astype(np.float16)
+#                            dstore_vals[dstore_idx:shape[0]+dstore_idx] = hypo['tokens'].view(
+#                                -1, 1).cpu().numpy().astype(np.int16)
+#                        else:
+#                            dstore_keys[dstore_idx:shape[0]+dstore_idx] = hypo['dstore_keys'].view(
+#                                -1, args.decoder_embed_dim).cpu().numpy().astype(np.float32)
+#                            dstore_vals[dstore_idx:shape[0]+dstore_idx] = hypo['tokens'].view(
+#                                -1, 1).cpu().numpy().astype(np.int)
+
+                        dstore_idx += shape[0]
+                    else:
+                        print('Skipping this one with shape', shape)
+
                 sample_id = sample['id'][i]
 
                 tokens = hypo['tokens']
@@ -178,13 +222,13 @@ def main(parsed_args):
                             pos_scores[i + 1] += pos_scores[i]
                             pos_scores[i] = 0
 
-                inf_scores = pos_scores.eq(float('inf')) | pos_scores.eq(float('-inf'))
-                if inf_scores.any():
-                    logger.info(
-                        'skipping tokens with inf scores:',
-                        task.target_dictionary.string(tokens[inf_scores.nonzero()])
-                    )
-                    pos_scores = pos_scores[(~inf_scores).nonzero()]
+                #inf_scores = pos_scores.eq(float('inf')) | pos_scores.eq(float('-inf'))
+                #if inf_scores.any():
+                #    logger.info(
+                #        'skipping tokens with inf scores:',
+                #        task.target_dictionary.string(tokens[inf_scores.nonzero()])
+                #    )
+                #    pos_scores = pos_scores[(~inf_scores).nonzero()]
                 score_sum += pos_scores.sum().cpu()
                 count += pos_scores.numel() - skipped_toks
 
@@ -220,6 +264,11 @@ def main(parsed_args):
 
             wps_meter.update(sample['ntokens'])
             t.log({'wps': round(wps_meter.avg)})
+
+    if args.save_knnlm_dstore:
+        print("dstore_idx", dstore_idx, "final shape", shape)
+        print("Keys", dstore_keys.shape, dstore_keys.dtype)
+        print("Vals", dstore_vals.shape, dstore_vals.dtype)
 
     avg_nll_loss = -score_sum / count / math.log(2)  # convert to base 2
     logger.info('Evaluated {} tokens in {:.1f}s ({:.2f} tokens/s)'.format(

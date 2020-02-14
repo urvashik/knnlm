@@ -483,6 +483,14 @@ def add_eval_lm_args(parser):
     group.add_argument('--softmax-batch', default=sys.maxsize, type=int, metavar='N',
                        help='if BxT is more than this, will batch the softmax over vocab to this amount of tokens'
                             ' in order to fit into GPU memory')
+    group.add_argument('--lm-eval', default=True, action='store_true',
+                       help='helpful for certain ops that are only used during eval')
+    group.add_argument('--knnlm', action='store_true',
+                       help='use the k-nearest neighbors language model')
+    group.add_argument('--save-knnlm-dstore', action='store_true',
+                       help='save keys for the knnlm datastore')
+    group.add_argument('--dstore-mmap', default=None, type=str,
+                       help='If saving knnlm dstore, save keys and values to this file')
     # fmt: on
 
 

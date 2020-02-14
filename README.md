@@ -1,160 +1,132 @@
-<p align="center">
-  <img src="fairseq_logo.png" width="150">
-  <br />
-  <br />
-  <a href="https://github.com/pytorch/fairseq/blob/master/LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-blue.svg" /></a>
-  <a href="https://github.com/pytorch/fairseq/releases"><img alt="Latest Release" src="https://img.shields.io/github/release/pytorch/fairseq.svg" /></a>
-  <a href="https://github.com/pytorch/fairseq/actions?query=workflow:build"><img alt="Build Status" src="https://github.com/pytorch/fairseq/workflows/build/badge.svg" /></a>
-  <a href="https://fairseq.readthedocs.io/en/latest/?badge=latest"><img alt="Documentation Status" src="https://readthedocs.org/projects/fairseq/badge/?version=latest" /></a>
-</p>
+# Nearest Neighbor Language Models
 
---------------------------------------------------------------------------------
+This repository is a fork of the [Fairseq](https://github.com/pytorch/fairseq) repository and the exact commit that this code is based on can be found [here](https://github.com/pytorch/fairseq/tree/6a5181509aa1fa7d260985157e77211753da544b). Please use the exact commit page to determine software requirements for using this code. This README will be updated once the code has been merged into Fairseq.
 
-Fairseq(-py) is a sequence modeling toolkit that allows researchers and
-developers to train custom models for translation, summarization, language
-modeling and other text generation tasks.
+This code pertains to the ICLR 2020 paper: [Generalization through Memorization: Nearest Neighbor Language Models](https://arxiv.org/pdf/1911.00172.pdf). If you use this code or results from our paper, please cite:
 
-### What's New:
-
-- November 2019: [VizSeq released (a visual analysis toolkit for evaluating fairseq models)](https://facebookresearch.github.io/vizseq/docs/getting_started/fairseq_example)
-- November 2019: [CamemBERT model and code released](examples/camembert/README.md)
-- November 2019: [BART model and code released](examples/bart/README.md)
-- November 2019: [XLM-R models and code released](examples/xlmr/README.md)
-- September 2019: [Nonautoregressive translation code released](examples/nonautoregressive_translation/README.md)
-- August 2019: [WMT'19 models released](examples/wmt19/README.md)
-- July 2019: fairseq relicensed under MIT license
-- July 2019: [RoBERTa models and code released](examples/roberta/README.md)
-- June 2019: [wav2vec models and code released](examples/wav2vec/README.md)
-
-### Features:
-
-Fairseq provides reference implementations of various sequence-to-sequence models, including:
-- **Convolutional Neural Networks (CNN)**
-  - [Language Modeling with Gated Convolutional Networks (Dauphin et al., 2017)](examples/language_model/conv_lm/README.md)
-  - [Convolutional Sequence to Sequence Learning (Gehring et al., 2017)](examples/conv_seq2seq/README.md)
-  - [Classical Structured Prediction Losses for Sequence to Sequence Learning (Edunov et al., 2018)](https://github.com/pytorch/fairseq/tree/classic_seqlevel)
-  - [Hierarchical Neural Story Generation (Fan et al., 2018)](examples/stories/README.md)
-  - [wav2vec: Unsupervised Pre-training for Speech Recognition (Schneider et al., 2019)](examples/wav2vec/README.md)
-- **LightConv and DynamicConv models**
-  - [Pay Less Attention with Lightweight and Dynamic Convolutions (Wu et al., 2019)](examples/pay_less_attention_paper/README.md)
-- **Long Short-Term Memory (LSTM) networks**
-  - Effective Approaches to Attention-based Neural Machine Translation (Luong et al., 2015)
-- **Transformer (self-attention) networks**
-  - Attention Is All You Need (Vaswani et al., 2017)
-  - [Scaling Neural Machine Translation (Ott et al., 2018)](examples/scaling_nmt/README.md)
-  - [Understanding Back-Translation at Scale (Edunov et al., 2018)](examples/backtranslation/README.md)
-  - [Adaptive Input Representations for Neural Language Modeling (Baevski and Auli, 2018)](examples/language_model/transformer_lm/README.md)
-  - [Mixture Models for Diverse Machine Translation: Tricks of the Trade (Shen et al., 2019)](examples/translation_moe/README.md)
-  - [RoBERTa: A Robustly Optimized BERT Pretraining Approach (Liu et al., 2019)](examples/roberta/README.md)
-  - [Facebook FAIR's WMT19 News Translation Task Submission (Ng et al., 2019)](examples/wmt19/README.md)
-  - [Jointly Learning to Align and Translate with Transformer Models (Garg et al., 2019)](examples/joint_alignment_translation/README.md )
-- **Non-autoregressive Transformers**
-  - Non-Autoregressive Neural Machine Translation (Gu et al., 2017)
-  - Deterministic Non-Autoregressive Neural Sequence Modeling by Iterative Refinement (Lee et al. 2018)
-  - Insertion Transformer: Flexible Sequence Generation via Insertion Operations (Stern et al. 2019)
-  - Mask-Predict: Parallel Decoding of Conditional Masked Language Models (Ghazvininejad et al., 2019)
-  - [Levenshtein Transformer (Gu et al., 2019)](examples/nonautoregressive_translation/README.md)
-
-
-**Additionally:**
-- multi-GPU (distributed) training on one machine or across multiple machines
-- fast generation on both CPU and GPU with multiple search algorithms implemented:
-  - beam search
-  - Diverse Beam Search ([Vijayakumar et al., 2016](https://arxiv.org/abs/1610.02424))
-  - sampling (unconstrained, top-k and top-p/nucleus)
-- large mini-batch training even on a single GPU via delayed updates
-- mixed precision training (trains faster with less GPU memory on [NVIDIA tensor cores](https://developer.nvidia.com/tensor-cores))
-- extensible: easily register new models, criterions, tasks, optimizers and learning rate schedulers
-
-We also provide [pre-trained models for translation and language modeling](#pre-trained-models-and-examples)
-with a convenient `torch.hub` interface:
-```python
-en2de = torch.hub.load('pytorch/fairseq', 'transformer.wmt19.en-de.single_model')
-en2de.translate('Hello world', beam=5)
-# 'Hallo Welt'
 ```
-See the PyTorch Hub tutorials for [translation](https://pytorch.org/hub/pytorch_fairseq_translation/)
-and [RoBERTa](https://pytorch.org/hub/pytorch_fairseq_roberta/) for more examples.
-
-![Model](fairseq.gif)
-
-# Requirements and Installation
-
-* [PyTorch](http://pytorch.org/) version >= 1.2.0
-* Python version >= 3.6
-* For training new models, you'll also need an NVIDIA GPU and [NCCL](https://github.com/NVIDIA/nccl)
-* **For faster training** install NVIDIA's [apex](https://github.com/NVIDIA/apex) library with the `--cuda_ext` and `--deprecated_fused_adam` options
-
-To install fairseq:
-```bash
-pip install fairseq
-```
-
-On MacOS:
-```bash
-CFLAGS="-stdlib=libc++" pip install fairseq
-```
-
-If you use Docker make sure to increase the shared memory size either with
-`--ipc=host` or `--shm-size` as command line options to `nvidia-docker run`.
-
-**Installing from source**
-
-To install fairseq from source and develop locally:
-```bash
-git clone https://github.com/pytorch/fairseq
-cd fairseq
-pip install --editable .
-```
-
-# Getting Started
-
-The [full documentation](https://fairseq.readthedocs.io/) contains instructions
-for getting started, training new models and extending fairseq with new model
-types and tasks.
-
-# Pre-trained models and examples
-
-We provide pre-trained models and pre-processed, binarized test sets for several tasks listed below,
-as well as example training and evaluation commands.
-
-- [Translation](examples/translation/README.md): convolutional and transformer models are available
-- [Language Modeling](examples/language_model/README.md): convolutional and transformer models are available
-- [wav2vec](examples/wav2vec/README.md): wav2vec large model is available
-
-We also have more detailed READMEs to reproduce results from specific papers:
-- [Jointly Learning to Align and Translate with Transformer Models (Garg et al., 2019)](examples/joint_alignment_translation/README.md )
-- [Levenshtein Transformer (Gu et al., 2019)](examples/nonautoregressive_translation/README.md)
-- [Facebook FAIR's WMT19 News Translation Task Submission (Ng et al., 2019)](examples/wmt19/README.md)
-- [RoBERTa: A Robustly Optimized BERT Pretraining Approach (Liu et al., 2019)](examples/roberta/README.md)
-- [wav2vec: Unsupervised Pre-training for Speech Recognition (Schneider et al., 2019)](examples/wav2vec/README.md)
-- [Mixture Models for Diverse Machine Translation: Tricks of the Trade (Shen et al., 2019)](examples/translation_moe/README.md)
-- [Pay Less Attention with Lightweight and Dynamic Convolutions (Wu et al., 2019)](examples/pay_less_attention_paper/README.md)
-- [Understanding Back-Translation at Scale (Edunov et al., 2018)](examples/backtranslation/README.md)
-- [Classical Structured Prediction Losses for Sequence to Sequence Learning (Edunov et al., 2018)](https://github.com/pytorch/fairseq/tree/classic_seqlevel)
-- [Hierarchical Neural Story Generation (Fan et al., 2018)](examples/stories/README.md)
-- [Scaling Neural Machine Translation (Ott et al., 2018)](examples/scaling_nmt/README.md)
-- [Convolutional Sequence to Sequence Learning (Gehring et al., 2017)](examples/conv_seq2seq/README.md)
-- [Language Modeling with Gated Convolutional Networks (Dauphin et al., 2017)](examples/language_model/conv_lm/README.md)
-
-# Join the fairseq community
-
-* Facebook page: https://www.facebook.com/groups/fairseq.users
-* Google group: https://groups.google.com/forum/#!forum/fairseq-users
-
-# License
-fairseq(-py) is MIT-licensed.
-The license applies to the pre-trained models as well.
-
-# Citation
-
-Please cite as:
-
-```bibtex
-@inproceedings{ott2019fairseq,
-  title = {fairseq: A Fast, Extensible Toolkit for Sequence Modeling},
-  author = {Myle Ott and Sergey Edunov and Alexei Baevski and Angela Fan and Sam Gross and Nathan Ng and David Grangier and Michael Auli},
-  booktitle = {Proceedings of NAACL-HLT 2019: Demonstrations},
-  year = {2019},
+@article{khandelwal20generalization,
+  title={{Generalization through Memorization: Nearest Neighbor Language Models}},
+  author={Khandelwal, Urvashi and Levy, Omer and Jurafsky, Dan and Zettlemoyer, Luke and Lewis, Mike},
+  journal={International Conference on Learning Representations (ICLR)},
+  year={2020}
 }
 ```
+
+## Wikitext-103 Experiments
+
+Before starting, make sure you install fairseq (after pulling the code, from the project directory) and [faiss](https://github.com/facebookresearch/faiss/wiki):
+```bash
+pip install --editable .
+
+pip install faiss
+```
+
+### A note about Hardware
+
+Experiments for this paper were conducted on machines that contain 500GB of RAM, NVIDIA V100 32GB GPUs and flash storage (SSDs). Saving the Wikitext-103 datastore requires 400GB of disk space. The speed of saving the datastore, building the FAISS index and evaluating the nearest neighbors language model heavily depends on the amount of RAM available for each job. Some of these steps can be sped up by parallelizing, which we leave for users to do in order to best cater to their setup.
+
+If you are working with a remote cluster, please note that we use [memmaps](https://numpy.org/doc/1.18/reference/generated/numpy.memmap.html) for saving the datastore. This allows us to keep the data on disk while accessing it by loading small chunks into memory, depending on the available RAM. This means there are a large number of disk seeks. In order to prevent slowing down your entire cluster, we suggest always reading/writing this data to/from local disks (as opposed to NFS directories), and flash storage is best for faster access.
+
+### Preparing the data
+
+We share Fairseq's instructions on how to prepare the data here.
+
+```bash
+cd examples/language_model/
+bash prepare-wikitext-103.sh
+cd ../..
+
+
+TEXT=examples/language_model/wikitext-103
+python preprocess.py \
+    --only-source \
+    --trainpref $TEXT/wiki.train.tokens \
+    --validpref $TEXT/wiki.valid.tokens \
+    --testpref $TEXT/wiki.test.tokens \
+    --destdir data-bin/wikitext-103 \
+    --workers 20
+```
+
+### Training the Language Model
+
+We share Fairseq's instructions on how to train the language model here. Alternatively, you can download the checkpoint used for our experiments [here](https://nlp.stanford.edu/projects/knnlm/wt103_checkpoint_best.pt). 
+
+```bash
+python train.py --task language_modeling \
+    data-bin/wikitext-103 \
+    --save-dir checkpoints/ \
+    --arch transformer_lm_wiki103 \
+    --max-update 286000 --max-lr 1.0 --t-mult 2 --lr-period-updates 270000 --lr-scheduler cosine --lr-shrink 0.75 \
+    --warmup-updates 16000 --warmup-init-lr 1e-07 --min-lr 1e-09 --optimizer nag --lr 0.0001 --clip-norm 0.1 \
+    --criterion adaptive_loss --max-tokens 3072 --update-freq 3 --tokens-per-sample 3072 --seed 1 --fp16 \
+    --sample-break-mode none --skip-invalid-size-inputs-valid-test --ddp-backend=no_c10d
+```
+
+This model was trained on 8 gpus.
+
+### Evaluating the Language Model
+
+To evaluate the model on the validation set:
+
+```bash
+python eval_lm.py data-bin/wikitext-103 \
+    --path checkpoints/checkpoint_best.pt \
+    --sample-break-mode complete --max-tokens 3072 \
+    --context-window 2560 --softmax-batch 1024 \
+    --gen-subset valid
+```
+
+### Saving the keys and values for the datastore
+
+In order to save keys and values for the datastore, we must run model evaluation over the entire training set. 
+
+**Caution**: Running this step requires a large amount of disk space (400GB!). Please read the note about Hardware above, before running this! 
+
+```bash
+python eval_lm.py data-bin/wikitext-103 \
+    --path checkpoints/checkpoint_best.pt \
+    --sample-break-mode none --max-tokens 3072 \
+    --softmax-batch 1024 --gen-subset train \
+    --context-window 1536 --tokens-per-sample 1536 \
+    --dstore-mmap checkpoints/dstore --knn-keytype 'last_ffn_input' \
+    --dstore-size 103225485 --model-overrides "{'knn_keytype': 'last_ffn_input'}" \
+    --save-knnlm-dstore --fp16
+```
+
+The total number of tokens in the Wikitext-103 training set is `103227021`. The dstore size `103225485` is `1536` tokens less than the total due to the context-window. We want each key to be constructed using a minimum amount of prior context.
+
+If you would prefer to save the keys and values in float16, please use the `--dstore-fp16` flag and remember to use it during the index building and evaluation steps as well.
+
+### Building the FAISS index
+
+The FAISS index requires a training stage where it learns a set of clusters for the keys. Once this is completed, the keys must all be added to the index. The speed of adding keys to the index depends on the hardware, particularly the amount of RAM available. Please check the paper for more details on our use of FAISS.
+
+Note that the following command runs on CPU.
+
+```bash
+python build_dstore.py 
+    --dstore_mmap checkpoints/dstore \
+    --dstore_size 103225485 \
+    --faiss_index checkpoints/knn.index \
+    --num_keys_to_add_at_a_time 500000 \
+    --starting_point 0
+```
+
+### Evaluating the Nearest Neighbor Language Model
+
+To evaluate the model on the validation set:
+
+```bash
+python eval_lm.py data-bin/wikitext-103 \
+    --path checkpoints/checkpoint_best.pt \
+    --sample-break-mode complete --max-tokens 3072 \
+    --context-window 2560 --softmax-batch 1024 \
+    --gen-subset valid --dstore-filename checkpoints/dstore \
+    --indexfile checkpoints/knn.index  \
+    --model-overrides "{'knn_keytype': 'last_ffn_input'}" \
+    --k 1024 --lmbda 0.25 --dstore-size 103225485 --knn-keytype last_ffn_input \
+    --probe 32 --knnlm --fp16
+```
+
+If your hardware constraints make this too slow, you can run it without using full precision keys by adding two flags: `--no-load-keys` and `--knn-sim-func "do_not_recomp_l2"`. This uses the quantized versions of keys stored within the FAISS index. You can make things faster by reducing the value of the `probe` (the number of clusters FAISS checks for neighbors) at the cost of performance. You can also try reducing the number of neighbors `k`.

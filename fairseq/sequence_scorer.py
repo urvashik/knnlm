@@ -5,19 +5,23 @@
 
 import torch
 import sys
+import numpy as np
+import time
 
 from fairseq import utils
+from fairseq.data import Dictionary
 
 
 class SequenceScorer(object):
     """Scores the target for a given source sentence."""
 
-    def __init__(self, tgt_dict, softmax_batch=None, compute_alignment=False):
+    def __init__(self, tgt_dict, softmax_batch=None, compute_alignment=False, args=None):
         self.pad = tgt_dict.pad()
         self.eos = tgt_dict.eos()
         self.softmax_batch = softmax_batch or sys.maxsize
         assert self.softmax_batch > 0
         self.compute_alignment = compute_alignment
+        self.args = args
 
     @torch.no_grad()
     def generate(self, models, sample, **kwargs):
@@ -46,6 +50,15 @@ class SequenceScorer(object):
             )
             return probs
 
+        def combine_knn_and_vocab_probs(knn_p, vocab_p, coeff):
+            combine_probs = torch.stack([vocab_p, knn_p], dim=0)
+            coeffs = torch.ones_like(combine_probs)
+            coeffs[0] = np.log(1 - coeff)
+            coeffs[1] = np.log(coeff)
+            curr_prob = torch.logsumexp(combine_probs + coeffs, dim=0)
+
+            return curr_prob
+
         orig_target = sample['target']
 
         # compute scores for each model in the ensemble
@@ -60,9 +73,10 @@ class SequenceScorer(object):
 
             batched = batch_for_softmax(decoder_out, orig_target)
             probs, idx = None, 0
-            for bd, tgt, is_single in batched:
+            for i, (bd, tgt, is_single) in enumerate(batched):
                 sample['target'] = tgt
                 curr_prob = model.get_normalized_probs(bd, log_probs=len(models) == 1, sample=sample).data
+
                 if is_single:
                     probs = gather_target_probs(curr_prob, orig_target)
                 else:
@@ -76,6 +90,25 @@ class SequenceScorer(object):
                 sample['target'] = orig_target
 
             probs = probs.view(sample['target'].shape)
+
+            if 'knn_dstore' in kwargs:
+                dstore = kwargs['knn_dstore']
+                # TxBxC
+                queries = bd[1][self.args.knn_keytype]
+                if len(models) != 1:
+                    raise ValueError('Only knn *log* probs are supported.')
+
+                yhat_knn_prob = dstore.get_knn_log_prob(
+                        queries,
+                        orig_target.permute(1, 0),
+                        pad_idx=self.pad)
+                yhat_knn_prob = yhat_knn_prob.permute(1, 0, 2).squeeze(-1)
+                if self.args.fp16:
+                    yhat_knn_prob = yhat_knn_prob.half()
+                    probs = probs.half()
+
+                probs = combine_knn_and_vocab_probs(
+                            yhat_knn_prob, probs, self.args.lmbda)
 
             if avg_probs is None:
                 avg_probs = probs
@@ -123,5 +156,6 @@ class SequenceScorer(object):
                 'attention': avg_attn_i,
                 'alignment': alignment,
                 'positional_scores': avg_probs_i,
+                'dstore_keys': decoder_out[1][self.args.knn_keytype][start_idxs[i]:,i,:] if self.args.save_knnlm_dstore else None,
             }])
         return hypos

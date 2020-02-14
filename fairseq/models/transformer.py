@@ -577,6 +577,7 @@ class TransformerDecoder(FairseqIncrementalDecoder):
         self.dropout = args.dropout
         self.decoder_layerdrop = args.decoder_layerdrop
         self.share_input_output_embed = args.share_decoder_input_output_embed
+        self.knn_keytype = args.knn_keytype
 
         input_embed_dim = embed_tokens.embedding_dim
         embed_dim = args.decoder_embed_dim
@@ -761,6 +762,7 @@ class TransformerDecoder(FairseqIncrementalDecoder):
         # decoder layers
         attn: Optional[Tensor] = None
         inner_states: List[Optional[Tensor]] = [x]
+        get_ffn_inp: bool = False
         for idx, layer in enumerate(self.layers):
             encoder_state: Optional[Tensor] = None
             if encoder_out is not None:
@@ -776,6 +778,11 @@ class TransformerDecoder(FairseqIncrementalDecoder):
             else:
                 self_attn_mask = None
 
+            if self.knn_keytype == 'last_ffn_input' and idx == (len(self.layers)-1):
+                get_ffn_inp = True
+            else:
+                get_ffn_inp = False
+
             # add LayerDrop (see https://arxiv.org/abs/1909.11556 for description)
             dropout_probability = torch.empty(1).uniform_()
             if not self.training or (dropout_probability > self.decoder_layerdrop):
@@ -790,8 +797,14 @@ class TransformerDecoder(FairseqIncrementalDecoder):
                     self_attn_padding_mask=self_attn_padding_mask,
                     need_attn=bool((idx == alignment_layer)),
                     need_head_weights=bool((idx == alignment_layer)),
+                    ret_ffn_inp=get_ffn_inp,
                 )
                 inner_states.append(x)
+                if get_ffn_inp:
+                    if layer_attn is None:
+                        raise ValueError("Cannot use layerdrop with knnlm!")
+                    knn_emb = layer_attn[1]
+                    layer_attn = layer_attn[0]
                 if layer_attn is not None and idx == alignment_layer:
                     attn = layer_attn.float().to(x)
 
@@ -810,6 +823,9 @@ class TransformerDecoder(FairseqIncrementalDecoder):
 
         if self.project_out_dim is not None:
             x = self.project_out_dim(x)
+
+        if self.knn_keytype == 'last_ffn_input':
+            return x, {'attn': [attn], 'inner_states': inner_states, self.knn_keytype: knn_emb}
 
         return x, {"attn": [attn], "inner_states": inner_states}
 
