@@ -5,10 +5,10 @@ This repository is a fork of the [Fairseq](https://github.com/pytorch/fairseq) r
 This code pertains to the ICLR 2020 paper: [Generalization through Memorization: Nearest Neighbor Language Models](https://arxiv.org/pdf/1911.00172.pdf). If you use this code or results from our paper, please cite:
 
 ```
-@article{khandelwal20generalization,
+@inproceedings{khandelwal20generalization,
   title={{Generalization through Memorization: Nearest Neighbor Language Models}},
   author={Khandelwal, Urvashi and Levy, Omer and Jurafsky, Dan and Zettlemoyer, Luke and Lewis, Mike},
-  journal={International Conference on Learning Representations (ICLR)},
+  booktitle={International Conference on Learning Representations (ICLR)},
   year={2020}
 }
 ```
