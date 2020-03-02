@@ -105,7 +105,7 @@ The FAISS index requires a training stage where it learns a set of clusters for 
 Note that the following command runs on CPU.
 
 ```bash
-python build_dstore.py 
+python build_dstore.py \
     --dstore_mmap checkpoints/dstore \
     --dstore_size 103225485 \
     --faiss_index checkpoints/knn.index \
