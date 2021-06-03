@@ -13,6 +13,10 @@ This code pertains to the ICLR 2020 paper: [Generalization through Memorization:
 }
 ```
 
+## Note on kNN-MT (Nearest Neighbor Machine Translation)
+Note that the code for kNN-MT is not yet available. I've just graduated (yay!) and will be offline for a few months, and will work on providing it after.  
+
+
 ## Wikitext-103 Experiments
 
 Before starting, make sure you install Fairseq (after pulling the code, from the project directory) and [FAISS](https://github.com/facebookresearch/faiss/wiki):
